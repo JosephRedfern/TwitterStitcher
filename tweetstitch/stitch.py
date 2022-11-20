@@ -35,6 +35,16 @@ class TweetStitch:
         )
 
     def start(self) -> None:
+        """This method probably does a bit too much:
+
+        * Determines conversation ID from the input tweet.
+        * Searches for other replies within that conversation, containing
+          media, from the original author.
+        * Calls off to extract video URLs for each returned tweet.
+        * Calls off to download those videos to a temporary directory.
+        * Calls off to merge those downloaded videos into a single video,
+          using `ffmpeg`."""
+
         # We need at least some of these expansions/fields to be able to
         # determine conversation ID and get the media URLs.
         expansions = (
