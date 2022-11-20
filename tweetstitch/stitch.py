@@ -1,12 +1,12 @@
 import logging
-
+import os
+import subprocess
 import tempfile
 from typing import List
 
-import subprocess
-import tweepy
 import requests
-import os
+import tqdm
+import tweepy
 
 # Configure logger
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
@@ -21,6 +21,7 @@ logging.basicConfig(
 TWITTER_API_KEY = os.getenv("TWITTER_API_KEY")
 TWITTER_API_SECRET_KEY = os.getenv("TWITTER_API_SECRET_KEY")
 TWITTER_BEARER_TOKEN = os.getenv("TWITTER_BEARER_TOKEN")
+
 
 class TweetStitch:
     def __init__(self, root_tweet_id: int, output_filename: str) -> None:
@@ -73,7 +74,7 @@ class TweetStitch:
                 media_fields=media_fields,
                 user_fields=user_fields,
                 max_results=100,
-                next_token=next_token
+                next_token=next_token,
             )
 
             medias += response.includes["media"]
@@ -88,11 +89,11 @@ class TweetStitch:
 
         # We need to iterate in reverse order here since the most recent is
         # first, and if we didn't, our re-constructed video would be in reverse
-        #order!
+        # order!
         urls = []
         for media in medias[::-1]:
             best_video_url = self.get_best_video(media.variants)
-            urls.append(best_video_url['url'])
+            urls.append(best_video_url["url"])
 
         # We don't care about keeping the individual chunks, so use a temproary
         # directory.
@@ -102,7 +103,7 @@ class TweetStitch:
 
     @staticmethod
     def download_urls(urls: List[str], directory: str) -> List[str]:
-        """ Download a list of URLs to the specified directory.
+        """Download a list of URLs to the specified directory.
 
         Assumes mp4, and includes the url index in the filename (e.g. 1.mp4)
 
@@ -112,7 +113,7 @@ class TweetStitch:
         logging.info(f"Downloading {len(urls)} to {directory}")
         paths = []
 
-        for n, url in enumerate(urls):
+        for n, url in tqdm.tqdm(enumerate(urls)):
             logging.info(f"Downloading video {n+1}/{len(urls)} ({url})")
             with requests.get(url, stream=True) as r:
                 r.raise_for_status()
@@ -125,7 +126,7 @@ class TweetStitch:
 
     @staticmethod
     def merge_videos(paths: List[str], output: str) -> None:
-        """ Concatenate the specified list of videos using `ffmpeg`.
+        """Concatenate the specified list of videos using `ffmpeg`.
 
         To do this, we need to generate a list of files to pass to the concat
         demuxer: https://trac.ffmpeg.org/wiki/Concatenate. We then pass this
@@ -134,23 +135,35 @@ class TweetStitch:
         A bit gross, no bindings used here, just subprocess... but it works?
         """
 
-
         # We need to prevent deletion as we can't keep the write handle open
         # and also pass to ffmpeg. So prevent automatic deletion, pass the
         # filename to ffmpeg, then delete the temporary file in the `finally`
         # block
-        with tempfile.NamedTemporaryFile('w', delete=False) as command_file:
+        with tempfile.NamedTemporaryFile("w", delete=False) as command_file:
             try:
                 for path in paths:
                     command = f"file '{path}'\n"
                     command_file.write(command)
                 command_file.close()
-                subprocess.run(["ffmpeg", "-f", "concat", "-safe", "0", "-i", command_file.name, "-c", "copy", output])
+                subprocess.run(
+                    [
+                        "ffmpeg",
+                        "-f",
+                        "concat",
+                        "-safe",
+                        "0",
+                        "-i",
+                        command_file.name,
+                        "-c",
+                        "copy",
+                        output,
+                    ]
+                )
             finally:
                 os.unlink(command_file.name)
 
     def get_best_video(self, variants: list) -> dict:
-        """ Identify variant with the highest bit-rate, and return a download
+        """Identify variant with the highest bit-rate, and return a download
         URL.
 
         Note: at least one of these variants always seems to be a playlist
