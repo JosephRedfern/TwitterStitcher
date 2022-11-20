@@ -23,7 +23,7 @@ TWITTER_API_SECRET_KEY = os.getenv("TWITTER_API_SECRET_KEY")
 TWITTER_BEARER_TOKEN = os.getenv("TWITTER_BEARER_TOKEN")
 
 class TweetStitch:
-    def __init__(self, root_tweet_id: int, output_filename: str):
+    def __init__(self, root_tweet_id: int, output_filename: str) -> None:
         self._root_tweet_id = root_tweet_id
         self._output_filename = output_filename
 
@@ -72,7 +72,7 @@ class TweetStitch:
                 tweet_fields=tweet_fields,
                 media_fields=media_fields,
                 user_fields=user_fields,
-                max_results=50,
+                max_results=100,
                 next_token=next_token
             )
 
@@ -101,7 +101,7 @@ class TweetStitch:
             self.merge_videos(paths, self._output_filename)
 
     @staticmethod
-    def download_urls(urls: List[str], directory: str) -> None:
+    def download_urls(urls: List[str], directory: str) -> List[str]:
         """ Download a list of URLs to the specified directory.
 
         Assumes mp4, and includes the url index in the filename (e.g. 1.mp4)
