@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "tweetstitch"
+version = "0.1.0"
+description = ""
+authors = ["Joseph Redfern <joseph@redfern.me>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+tqdm = "^4.64.1"
+tweepy = "^4.12.1"
+ipython = "^8.6.0"
+typer = "^0.7.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
