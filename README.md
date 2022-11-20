@@ -3,8 +3,15 @@ TweetStitch
 
 Extracts videos from Twitter threads and concatenate using `ffmpeg`.
 
-# Usage
+This tool works by:
+* Requesting the specified tweet from Twitter, extracting the conversation ID.
+* Retrieving other media-containing tweets, from the original author, within that conversation, in chronological order.
+* Extracting the highest quality media URL from those tweets, downloading to a temporary directory.
+* Calling off to `ffmpeg` to concatenate the downloaded videos together, using the `concat` ffmpeg demuxer.
 
+It seems to work OK, but things might start to go horribly wrong if video dimensions don't match up 
+
+# Usage
 ```
 python -m tweetstitch TWEET_URL OUTPUT_FILENAME
 ```
