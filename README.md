@@ -1,7 +1,7 @@
 TweetStitch
 ===========
 
-Extracts videos from twitter threads and concatenated using `ffmpeg`. 
+Extracts videos from Twitter threads and concatenate using `ffmpeg`.
 
 # Usage
 
