@@ -2,11 +2,15 @@ import logging
 import os
 import subprocess
 import tempfile
-from typing import List
+from concurrent import futures
+from typing import List, Tuple
 
 import requests
 import tqdm
 import tweepy
+
+# Max concurrent video downloads
+MAX_DOWNLOAD_WORKERS = 4
 
 # Configure logger
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
@@ -56,7 +60,7 @@ class TweetStitch:
         )
         user_fields = "name,username"
 
-        logging.info(f"Getting initial tweet to determine conversation ID...")
+        logging.info("Getting initial tweet to determine conversation ID...")
         first_tweet = self._tw.get_tweets(
             self._root_tweet_id,
             expansions=expansions,
@@ -123,16 +127,26 @@ class TweetStitch:
         logging.info(f"Downloading {len(urls)} to {directory}")
         paths = []
 
-        for n, url in tqdm.tqdm(enumerate(urls)):
-            logging.info(f"Downloading video {n+1}/{len(urls)} ({url})")
+        def download_url(args: Tuple[str, int]) -> None:
+            url, n = args
             with requests.get(url, stream=True) as r:
                 r.raise_for_status()
                 path = f"{directory}/{n}.mp4"
                 with open(path, "wb") as f:
                     for chunk in r.iter_content(chunk_size=8192):
                         f.write(chunk)
-                paths.append(path)
-        return paths
+                return path
+
+        # Parallelise downloads for speeeeeeeeeed!
+        with futures.ThreadPoolExecutor(max_workers=MAX_DOWNLOAD_WORKERS) as executor:
+            paths = list(
+                tqdm.tqdm(
+                    executor.map(download_url, zip(urls, range(len(urls)))),
+                    total=len(urls),
+                    desc="Video download progress",
+                )
+            )
+            return paths
 
     @staticmethod
     def merge_videos(paths: List[str], output: str) -> None:
